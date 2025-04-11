@@ -45,7 +45,7 @@ export const styles = StyleSheet.create({
     },
     handGestureContainer: {
         borderRadius: 16,
-        marginHorizontal: 48,
+        marginHorizontal: 32,
         height: 200,
         borderWidth: 1,
         borderColor: 'gold',
