@@ -6,7 +6,7 @@ import { Modal, View, Image, StyleSheet, TouchableOpacity, ImageSourcePropType, 
 type Props = {
     visible: boolean,
     onClose?: () => void,
-    imageSource: ImageSourcePropType;
+    imageSource?: ImageSourcePropType;
     centerText?: string;
 }
 
@@ -20,7 +20,7 @@ const ImageModal = ({ visible, onClose, imageSource, centerText }: Props) => {
     >
       <View style={styles.modalBackground}>
         <TouchableOpacity style={styles.touchableArea} activeOpacity={1} onPress={onClose}>
-          <Image source={imageSource} style={styles.image} />
+          {imageSource? <Image source={imageSource} style={styles.image} />: null}
           {centerText? <Text style={styles.centerText}>{centerText}</Text>: null}
         </TouchableOpacity>
       </View>
@@ -53,8 +53,9 @@ const styles = StyleSheet.create({
     fontSize: 72,
     fontWeight: '900',
     color: 'skyblue',
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
+    // position: 'absolute',
+    // top: '50%',
+    // left: '50%',
+    alignSelf: 'center'
   }
 });

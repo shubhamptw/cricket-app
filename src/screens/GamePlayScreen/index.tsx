@@ -16,35 +16,39 @@ type GameState = {
     numberPressed: number | null;
     botNumberPressed: number | null;
     scoreList: number[];
+    botScoreList: number[],
     ballsBowled: number;
     isOut: boolean;
     inningsOver: boolean;
+    matchOver: boolean;
 };
 
-// const enum TeamType {
-//     PERSON = 'PERSON',
-//     BOT = 'BOT',
-// }
+const enum TeamType {
+    PERSON = 'PERSON',
+    BOT = 'BOT',
+    NONE = 'NONE'
+}
 
 const GamePlayScreen = () => {
 
     const [time, setTime] = useState(10);
     const [userInputNumber, setUserInputNumber] = useState<number>();
-    const [userIsBatting, setUserIsBatting] = useState(true);
     const [target, setTarget] = useState<number | null>(null);
-    const[secondInningScore, setSecondInningScore] = useState<number | null>(null);
+    const [secondInningScore, setSecondInningScore] = useState<number>(0);
     const [showBattingStart, setShowBattingStart] = useState(true);
-    const [battingTeam, setBattingTeam] = useState()
-
+    const [battingTeam, setBattingTeam] = useState<TeamType>(TeamType.PERSON)
+    const [matchWinner, setMatchWinner] = useState<TeamType>(TeamType.NONE)
 
     // const [scoreList, setScoreList]  = useState(new Array(6));
     const GAME_DEFAULT_STATE = {
         numberPressed: null,
         botNumberPressed: null,
         scoreList: [],
+        botScoreList: [],
         ballsBowled: 0,
         isOut: false,
         inningsOver: false,
+        matchOver: false
     }
     const [gameState, setGameState] = useState<GameState>(GAME_DEFAULT_STATE)
     const interValRef = useRef<any>("");
@@ -64,45 +68,35 @@ const GamePlayScreen = () => {
           };
     },[]);
 
-    // useEffect(() => {
-    //     if(showImageModal) {
-    //         setTimeout(() => {
-    //             setShowImgeModal(false)
-    //         }, 4000)
-    //     }
-    // }, [showImageModal]);
-
     useEffect(() => {
-        const { inningsOver, scoreList, isOut } = gameState;
+        const { inningsOver, scoreList, isOut, botScoreList, matchOver} = gameState;
         if(scoreList.length==6 && !inningsOver) {
             // setGameState((prevState) => ({...prevState, inningsOver: true}))
             setTimeout(() => {
-                setUserIsBatting(false)
+                // setUserIsBatting(false)
+                setBattingTeam(TeamType.BOT);
+            }, 0)
+        }
+        if(botScoreList.length == 6 && !matchOver) {
+            setTimeout(() => {
+                setBattingTeam(TeamType.NONE);
             }, 0)
         }
         if(isOut) {
-            // if(!inningsOver){
-            //     setTimeout(() => {
-            //         setGameState((prevState) => ({...prevState, inningsOver: true, isOut: false}))
-            //     }, 2000);
-            // }
-            if(userIsBatting){
+            if(battingTeam == TeamType.PERSON){
                 setTimeout(() => {
-                    setUserIsBatting(false)
+                    setBattingTeam(TeamType.BOT);
                 }, 4000)
+            }
+            if(battingTeam == TeamType.BOT) {
+                setTimeout(() => {
+                    setBattingTeam(TeamType.NONE);
+                }, 1000)
             }
         }
         console.log("** gamestate", gameState);
 
     }, [gameState, gameState.isOut, gameState.inningsOver]);
-
-    useEffect(() => {
-        const { inningsOver, scoreList, isOut } = gameState;
-        if(isOut) {
-
-        }
-    }, [gameState.isOut])
-
 
     useEffect(() => {
         setTimeout(() => {
@@ -117,11 +111,28 @@ const GamePlayScreen = () => {
 
     useEffect(() => {
         const currentGameState  = gameState
-        if(!userIsBatting) {
-            setTarget(currentGameState.scoreList.reduce((prev, curr) => prev + curr, 0) ?? 0);
+        if(secondInningScore>(target ?? 0)){
+            setBattingTeam(TeamType.NONE);
         }
-        console.log("** inside user is batting ", userIsBatting)
-    }, [userIsBatting])
+    }, [secondInningScore])
+
+    useEffect(() => {
+        const currentGameState  = gameState;
+        // match over
+        if(battingTeam == TeamType.NONE){
+            setGameState(GAME_DEFAULT_STATE);
+            clearInterval(interValRef.current)
+            let botScore = currentGameState.botScoreList.reduce((prev, curr) => prev + curr, 0)?? 0;
+            if(botScore> (target?? 0)){
+                setMatchWinner(TeamType.BOT)
+            }else {
+                setMatchWinner(TeamType.PERSON)
+            }
+        } else if(battingTeam == TeamType.BOT) {
+            setTarget(currentGameState.scoreList.reduce((prev, curr) => prev + curr, 0) ?? 0);
+        } 
+    }, [battingTeam]);
+
 
     useEffect(() => {
         console.log("** taget", target)
@@ -131,7 +142,11 @@ const GamePlayScreen = () => {
         }
         if(target!=null){
             setTimeout(() => {
-                setGameState(GAME_DEFAULT_STATE);
+                setGameState((prevState) => ({
+                    ...GAME_DEFAULT_STATE,
+                    scoreList: prevState.scoreList,
+                    botScoreList: prevState.botScoreList
+                }));
                 setTime(10);
             }, 2000)
         }
@@ -147,7 +162,7 @@ const GamePlayScreen = () => {
         const randomNumber = getRandomNumber()
         const isOut = randomNumber == value;
 
-        if(userIsBatting){
+        if(battingTeam == TeamType.PERSON){
             setGameState((prevState) => ({
                 ...prevState,
                 numberPressed: value,
@@ -156,17 +171,18 @@ const GamePlayScreen = () => {
                 botNumberPressed: randomNumber,
                 isOut
             }))
-        } else {
+        } else if(battingTeam == TeamType.BOT) {
             setGameState((prevState) => ({
                 ...prevState,
                 numberPressed: randomNumber,
                 ballsBowled: prevState.ballsBowled + 1,
-                scoreList: !isOut ? [...prevState.scoreList, randomNumber]: [...prevState.scoreList],
+                botScoreList: !isOut ? [...prevState.botScoreList, randomNumber]: [...prevState.botScoreList],
                 botNumberPressed: value,
-                isOut
+                isOut,
+                matchOver: isOut
             }))
+            setSecondInningScore((currentScore) => isOut? currentScore: currentScore + randomNumber)
         }
-
         setTime(10);
         setUserInputNumber(value)
     }
@@ -180,7 +196,8 @@ const GamePlayScreen = () => {
             if(!userInputNumber) {
                 setGameState((prevState) => ({
                     ...prevState,
-                    isOut: true
+                    isOut: true,
+                    matchOver: battingTeam == TeamType.BOT
                 }))
             }
             return 0;
@@ -222,6 +239,8 @@ const GamePlayScreen = () => {
     )
 
     const renderHandGestureView = () => {
+
+        const userIsBatting = battingTeam == TeamType.PERSON
         return (
             <View style={styles.handGestureContainer}>
                 <View>
@@ -246,7 +265,20 @@ const GamePlayScreen = () => {
             <View>
                 {scoreList?.map((score, index) =>{
                     return (
-                        <Text key={index} style={{color: 'white'}}>{`Current score is ${score}`}</Text>
+                        <Text key={index} style={{color: 'white'}}>{`Your score is ${score}`}</Text>
+                    )
+                })}
+            </View>
+        )
+    }
+
+    const renderBotScoreList = () => {
+        const scoreList = gameState.botScoreList;
+        return (
+            <View>
+                {scoreList?.map((score, index) =>{
+                    return (
+                        <Text key={index} style={{color: 'white'}}>{`Bot score is ${score}`}</Text>
                     )
                 })}
             </View>
@@ -262,13 +294,15 @@ const GamePlayScreen = () => {
                 <Text>{'Game play screen'}</Text>
                 {renderHandGestureView()}
                 {renderScoreList()}
+                {renderBotScoreList()}
                 {renderTimerView}
                 {numberButton}
          
                 <ImageModal visible={gameState.isOut} imageSource={images.out}  />
                 <ImageModal centerText={target?.toString()} visible={gameState.inningsOver} imageSource={images.game_defend}  />
                 <ImageModal visible={showBattingStart} imageSource={images.batting}  />
-
+                <ImageModal visible={matchWinner == TeamType.PERSON} imageSource={images.you_won}  />
+                <ImageModal centerText='You lost' visible={matchWinner == TeamType.BOT} />
             </SafeAreaView>
         </ImageBackground>
     );
