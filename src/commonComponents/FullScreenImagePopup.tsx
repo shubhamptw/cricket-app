@@ -1,16 +1,24 @@
 
 
 import React from 'react';
-import { Modal, View, Image, StyleSheet, TouchableOpacity, ImageSourcePropType, Text } from 'react-native';
+import { Modal, View, Image, StyleSheet, TouchableOpacity, ImageSourcePropType, Text, Button } from 'react-native';
+import { ScreenNames } from '../navigation/screenMapping';
 
 type Props = {
     visible: boolean,
     onClose?: () => void,
     imageSource?: ImageSourcePropType;
     centerText?: string;
+    retry?: boolean;
+    navigation?: any;
 }
 
-const ImageModal = ({ visible, onClose, imageSource, centerText }: Props) => {
+const ImageModal = ({ visible, onClose, imageSource, centerText, retry, navigation }: Props) => {
+
+  const handleOnRetryPress = () => {
+        navigation?.replace(ScreenNames.GAME_PLAY_SCREEN)
+  }
+
   return (
     <Modal
       animationType="fade"
@@ -22,6 +30,11 @@ const ImageModal = ({ visible, onClose, imageSource, centerText }: Props) => {
         <TouchableOpacity style={styles.touchableArea} activeOpacity={1} onPress={onClose}>
           {imageSource? <Image source={imageSource} style={styles.image} />: null}
           {centerText? <Text style={styles.centerText}>{centerText}</Text>: null}
+          {retry ? (
+            <TouchableOpacity style={styles.retryButton} onPress={handleOnRetryPress}>
+              <Text style={styles.ctaText}>{'Play again'}</Text>
+              </TouchableOpacity>
+          ): null}
         </TouchableOpacity>
       </View>
     </Modal>
@@ -53,9 +66,18 @@ const styles = StyleSheet.create({
     fontSize: 72,
     fontWeight: '900',
     color: 'skyblue',
-    // position: 'absolute',
-    // top: '50%',
-    // left: '50%',
-    alignSelf: 'center'
+    alignSelf: 'center',
+    marginBottom: 64,
+  },
+  button: {
+    marginVertical: 16,
+    width: '100%',
+  },
+  ctaText: {
+    color: 'white'
+  },
+  retryButton: {
+    backgroundColor: 'red', 
+    padding: 16
   }
 });
