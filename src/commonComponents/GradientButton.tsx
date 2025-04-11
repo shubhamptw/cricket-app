@@ -51,10 +51,8 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   text: {
-    // color: '#333',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '600',
-    // flex: 1,
     marginVertical: 16
   },
 });

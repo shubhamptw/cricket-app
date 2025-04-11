@@ -15,13 +15,7 @@ const GameIntroScreen = ({navigation}: Props) => {
 
     const renderHowToPlay = (
         <View style={styles.bannerContainer}>
-            {/* <View style={{height: 60, width: 60, backgroundColor: 'pink'}}>
-
-            </View> */}
             <Text style={styles.textBanner}>{'How to play'}</Text>
-            {/* <View style={{height: 60, width: 60, backgroundColor: 'pink'}}>
-
-            </View> */}
         </View>
     )
     const renderTapButtons = (
@@ -106,7 +100,7 @@ export const styles = StyleSheet.create({
     tapBtnText: {
         color: 'white',
         fontWeight: 'bold',
-        fontSize: 18
+        fontSize: 16
     },
     rulesContainer: {
         flexDirection: 'row',
@@ -114,17 +108,17 @@ export const styles = StyleSheet.create({
     },
     ruleText: {
         fontWeight: '500',
-        fontSize: 18,
+        fontSize: 14,
         color: 'white'
     },
     ruleNeg: {
         fontWeight: '500',
-        fontSize: 18,
+        fontSize: 14,
         color: 'red'
     },
     rulePos: {
         fontWeight: '500',
-        fontSize: 18,
+        fontSize: 14,
         color: 'lightgreen'
     },
     colorGold: {
@@ -132,11 +126,6 @@ export const styles = StyleSheet.create({
     },
     button: {
         marginVertical: 16
-    },
-    btnText: {
-        color: 'black',
-        fontWeight: 'bold',
-        fontSize: 20
     },
     textBanner: {
         color: 'gold',

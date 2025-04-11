@@ -21,6 +21,7 @@ type GameState = {
     isOut: boolean;
     inningsOver: boolean;
     matchOver: boolean;
+    sixer: boolean;
 };
 
 const enum TeamType {
@@ -39,7 +40,6 @@ const GamePlayScreen = () => {
     const [battingTeam, setBattingTeam] = useState<TeamType>(TeamType.PERSON)
     const [matchWinner, setMatchWinner] = useState<TeamType>(TeamType.NONE)
 
-    // const [scoreList, setScoreList]  = useState(new Array(6));
     const GAME_DEFAULT_STATE = {
         numberPressed: null,
         botNumberPressed: null,
@@ -48,20 +48,20 @@ const GamePlayScreen = () => {
         ballsBowled: 0,
         isOut: false,
         inningsOver: false,
-        matchOver: false
+        matchOver: false,
+        sixer: false,
     }
     const [gameState, setGameState] = useState<GameState>(GAME_DEFAULT_STATE)
     const interValRef = useRef<any>("");
     
     useEffect(() => {
         interValRef.current = setInterval(() => {
-            console.log("** interval")
             setTime(handleTimeSet)
-        },1000)
+        }, 1000);
 
         setTimeout(() => {
             setShowBattingStart(false);
-        }, 500)
+        }, 500);
 
         return () => {
             if (interValRef.current) clearInterval(interValRef.current);
@@ -69,11 +69,10 @@ const GamePlayScreen = () => {
     },[]);
 
     useEffect(() => {
-        const { inningsOver, scoreList, isOut, botScoreList, matchOver} = gameState;
+        const { inningsOver, scoreList, isOut, botScoreList, matchOver, sixer} = gameState;
         if(scoreList.length==6 && !inningsOver) {
             // setGameState((prevState) => ({...prevState, inningsOver: true}))
             setTimeout(() => {
-                // setUserIsBatting(false)
                 setBattingTeam(TeamType.BOT);
             }, 0)
         }
@@ -110,7 +109,6 @@ const GamePlayScreen = () => {
 
 
     useEffect(() => {
-        const currentGameState  = gameState
         if(secondInningScore>(target ?? 0)){
             setBattingTeam(TeamType.NONE);
         }
@@ -169,7 +167,8 @@ const GamePlayScreen = () => {
                 ballsBowled: prevState.ballsBowled + 1,
                 scoreList: !isOut ? [...prevState.scoreList, value]: [...prevState.scoreList],
                 botNumberPressed: randomNumber,
-                isOut
+                isOut,
+                sixer: !isOut && value == 6
             }))
         } else if(battingTeam == TeamType.BOT) {
             setGameState((prevState) => ({
@@ -179,6 +178,7 @@ const GamePlayScreen = () => {
                 botScoreList: !isOut ? [...prevState.botScoreList, randomNumber]: [...prevState.botScoreList],
                 botNumberPressed: value,
                 isOut,
+                sixer: !isOut && randomNumber == 6,
                 matchOver: isOut
             }))
             setSecondInningScore((currentScore) => isOut? currentScore: currentScore + randomNumber)
@@ -189,10 +189,8 @@ const GamePlayScreen = () => {
 
 
     const handleTimeSet = (prevTime: number) => {
-        console.log("** time", prevTime)
         if(prevTime == 0) return 0;
         if (prevTime === 1) {
-            // clearInterval(interValRef.current); // Clear before state becomes 0
             if(!userInputNumber) {
                 setGameState((prevState) => ({
                     ...prevState,
@@ -205,16 +203,65 @@ const GamePlayScreen = () => {
         return prevTime - 1;
     }
 
+    const renderBallsView = () => {
+        const {scoreList, botScoreList} = gameState;
+        let scores = battingTeam == TeamType.PERSON ? scoreList: botScoreList;
 
+        const items = Array.from({ length: 6 }, (_, index) => {
+            return index < scores.length ? scores[index] : undefined;
+        });
 
-    const renderBallAndScoreView = () => {
         return (
-            <View>
+            <View style={{flexDirection: 'row'}}>
+                <View style={{width: 10, backgroundColor: 'yellow', borderRadius: 8, marginEnd: 8}} />
+                <View style={[styles.gridContainer]}>
+                {items.map((item, index) => (
+                    <Image key={index} style={[styles.item, !item && styles.faded]} source={images.ball} />
+                ))}
+                </View>
+            </View>
+        )
+    }
+    const renderRunsView =() => {
+        const {scoreList, botScoreList} = gameState;
+        let scores = battingTeam == TeamType.PERSON ? scoreList: botScoreList;
 
+        const items = Array.from({ length: 6 }, (_, index) => {
+            return index < scores.length ? scores[index] : undefined;
+        });
+
+        return (
+            <View style={{flexDirection: 'row'}}>
+                <View style={{width: 10, backgroundColor: 'red', borderRadius: 8, marginEnd: 8}} />
+                <View style={[styles.gridContainer]}>
+                {items.map((item, index) => (
+                    <View key={index} style={[styles.item, item ? styles.greenCircleFilled: styles.blackCircle]}>
+                        <Text style={{color: 'white', fontSize: 12}}>{item}</Text>
+                    </View>
+                ))}
+                </View>
             </View>
         )
     }
 
+    const renderBallAndScoreView = () => {
+        return (
+          <View style={styles.ballScoreContainer}>
+            {battingTeam == TeamType.PERSON ? (
+                <>
+                    {renderRunsView()}
+                    {renderBallsView()}
+                </>
+
+            ): (
+                <>
+                    {renderBallsView()}
+                    {renderRunsView()}
+                </>
+            )}
+          </View>
+        );
+      };
 
 
     const renderTimerView = (
@@ -239,7 +286,6 @@ const GamePlayScreen = () => {
     )
 
     const renderHandGestureView = () => {
-
         const userIsBatting = battingTeam == TeamType.PERSON
         return (
             <View style={styles.handGestureContainer}>
@@ -247,40 +293,14 @@ const GamePlayScreen = () => {
                     <View style={[styles.roundTime, {borderColor: 'white'}]}>
                         <Text style={styles.timerText}>{gameState.numberPressed?? "--"}</Text>
                     </View>
-                    <Text style={styles.inputText}>{userIsBatting? "Your input": "Opponent input"}</Text>
+                    <Text style={styles.inputText}>{userIsBatting? "Your input": "Bot's input"}</Text>
                 </View>
                 <View>
-                    <View style={[styles.roundTime, {borderColor: 'green'}]}>
+                    <View style={[styles.roundTime, {borderColor: 'white'}]}>
                         <Text style={styles.timerText}>{gameState.botNumberPressed ?? "--"}</Text>
                     </View>
-                    <Text style={styles.inputText}>{userIsBatting? "Opponent input": "Your input"}</Text>
+                    <Text style={styles.inputText}>{userIsBatting? "Bot's input": "Your input"}</Text>
                 </View>
-            </View>
-        )
-    }
-
-    const renderScoreList = () => {
-        const scoreList = gameState.scoreList;
-        return (
-            <View>
-                {scoreList?.map((score, index) =>{
-                    return (
-                        <Text key={index} style={{color: 'white'}}>{`Your score is ${score}`}</Text>
-                    )
-                })}
-            </View>
-        )
-    }
-
-    const renderBotScoreList = () => {
-        const scoreList = gameState.botScoreList;
-        return (
-            <View>
-                {scoreList?.map((score, index) =>{
-                    return (
-                        <Text key={index} style={{color: 'white'}}>{`Bot score is ${score}`}</Text>
-                    )
-                })}
             </View>
         )
     }
@@ -290,14 +310,16 @@ const GamePlayScreen = () => {
             resizeMode="cover"
             style={styles.background}
             source={images.background}>
-            <SafeAreaView>
-                <Text>{'Game play screen'}</Text>
-                {renderHandGestureView()}
-                {renderScoreList()}
-                {renderBotScoreList()}
-                {renderTimerView}
-                {numberButton}
-         
+            <SafeAreaView style={{justifyContent: 'space-between', flex: 1}}>
+                <View>
+                    {renderBallAndScoreView()}
+                    {renderHandGestureView()}
+                    {renderTimerView}
+                </View>
+                <View>
+                    {numberButton}
+                </View>
+
                 <ImageModal visible={gameState.isOut} imageSource={images.out}  />
                 <ImageModal centerText={target?.toString()} visible={gameState.inningsOver} imageSource={images.game_defend}  />
                 <ImageModal visible={showBattingStart} imageSource={images.batting}  />
@@ -315,11 +337,10 @@ const styles = StyleSheet.create({
     },
     background: {
         flex: 1,
-        // justifyContent: 'center',
     },
     numberButtonContainer: {
         flexDirection: 'row',
-        marginHorizontal: 24,
+        margin: 16,
         flexWrap: 'wrap',
         justifyContent: 'center'
 
@@ -329,10 +350,8 @@ const styles = StyleSheet.create({
         width: 70,
         marginHorizontal: 16,
         marginVertical: 8,
-        // flex: 0.5
     },
     roundTime: {
-        // padding: 16,
         borderRadius: 50,
         borderColor: 'maroon',
         borderWidth: 4,
@@ -359,7 +378,6 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         marginHorizontal: 48,
         height: 200,
-        // width: 260,
         borderWidth: 1,
         borderColor: 'gold',
         elevation: 10,
@@ -368,10 +386,51 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 24
-        // alignSelf: 'center'
     },
     inputText: {
         color: 'white',
         marginVertical: 8
+    },
+    leftContainer: {
+        flex: 0.5,
+        flexDirection: 'row',
+        flexWrap: 'wrap'
+    },
+    rightContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        flex: 0.5
+    },
+    ballScoreContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        padding: 16,
+        // backgroundColor: 'gray',
+        borderRadius: 8,
+        margin: 16
+      },
+    gridContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        width: 120,
+        gap: 8,     
+    },
+    item: {
+        width: 24,
+        height: 24,
+        margin: 4, // fallback for older RN instead of gap,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    blackCircle: {
+        borderRadius: 40,
+        backgroundColor: 'black',
+    },
+    greenCircleFilled: {
+        borderRadius: 40,
+        backgroundColor: 'green'
+    },
+    faded: {
+        opacity: 0.5
     }
 });
