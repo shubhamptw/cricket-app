@@ -19,17 +19,22 @@ type GameState = {
     ballsBowled: number;
     isOut: boolean;
     inningsOver: boolean;
-    battingStart: boolean;
-  };
+};
+
+// const enum TeamType {
+//     PERSON = 'PERSON',
+//     BOT = 'BOT',
+// }
 
 const GamePlayScreen = () => {
 
     const [time, setTime] = useState(10);
     const [userInputNumber, setUserInputNumber] = useState<number>();
-    // const [showImageModal, setShowImgeModal] = useState(false);
     const [userIsBatting, setUserIsBatting] = useState(true);
-    const [target, setTarget] = useState<number>(0);
-    // const [showBattingStart, setShowBattingStart] = useState(true);
+    const [target, setTarget] = useState<number | null>(null);
+    const[secondInningScore, setSecondInningScore] = useState<number | null>(null);
+    const [showBattingStart, setShowBattingStart] = useState(true);
+    const [battingTeam, setBattingTeam] = useState()
 
 
     // const [scoreList, setScoreList]  = useState(new Array(6));
@@ -40,7 +45,6 @@ const GamePlayScreen = () => {
         ballsBowled: 0,
         isOut: false,
         inningsOver: false,
-        battingStart: true, 
     }
     const [gameState, setGameState] = useState<GameState>(GAME_DEFAULT_STATE)
     const interValRef = useRef<any>("");
@@ -50,6 +54,10 @@ const GamePlayScreen = () => {
             console.log("** interval")
             setTime(handleTimeSet)
         },1000)
+
+        setTimeout(() => {
+            setShowBattingStart(false);
+        }, 500)
 
         return () => {
             if (interValRef.current) clearInterval(interValRef.current);
@@ -65,7 +73,7 @@ const GamePlayScreen = () => {
     // }, [showImageModal]);
 
     useEffect(() => {
-        const { inningsOver, scoreList, isOut, battingStart } = gameState;
+        const { inningsOver, scoreList, isOut } = gameState;
         if(scoreList.length==6 && !inningsOver) {
             // setGameState((prevState) => ({...prevState, inningsOver: true}))
             setTimeout(() => {
@@ -83,11 +91,6 @@ const GamePlayScreen = () => {
                     setUserIsBatting(false)
                 }, 4000)
             }
-        }
-        if(battingStart){
-            setTimeout(() => {
-                setGameState((prevState) => ({...prevState, battingStart: false}))
-            }, 500)
         }
         console.log("** gamestate", gameState);
 
@@ -114,16 +117,23 @@ const GamePlayScreen = () => {
 
     useEffect(() => {
         const currentGameState  = gameState
-        setTarget(currentGameState.scoreList.reduce((prev, curr) => prev + curr, 0));
-        setGameState(GAME_DEFAULT_STATE);
-        setTime(10);
+        if(!userIsBatting) {
+            setTarget(currentGameState.scoreList.reduce((prev, curr) => prev + curr, 0) ?? 0);
+        }
         console.log("** inside user is batting ", userIsBatting)
     }, [userIsBatting])
 
     useEffect(() => {
+        console.log("** taget", target)
         const {inningsOver}  = gameState
-        if(!inningsOver && target!=0){
-            setGameState((prevState) => ({...prevState, inningsOver: true}))
+        if(!inningsOver && target!=null){
+            setGameState((prevState) => ({...prevState, isOut: false, inningsOver: true}))
+        }
+        if(target!=null){
+            setTimeout(() => {
+                setGameState(GAME_DEFAULT_STATE);
+                setTime(10);
+            }, 2000)
         }
     }, [target])
 
@@ -134,17 +144,29 @@ const GamePlayScreen = () => {
     }
 
     const handleOnNumberPress = (value: number) => {
-        console.log("** pressed",value)
-        const botNumber = 5
-        const isOut = botNumber == value;
-        setGameState((prevState) => ({
-            ...prevState,
-            numberPressed: value,
-            ballsBowled: prevState.ballsBowled + 1,
-            scoreList: [...prevState.scoreList, value],
-            botNumberPressed: botNumber,
-            isOut
-        }))
+        const randomNumber = getRandomNumber()
+        const isOut = randomNumber == value;
+
+        if(userIsBatting){
+            setGameState((prevState) => ({
+                ...prevState,
+                numberPressed: value,
+                ballsBowled: prevState.ballsBowled + 1,
+                scoreList: !isOut ? [...prevState.scoreList, value]: [...prevState.scoreList],
+                botNumberPressed: randomNumber,
+                isOut
+            }))
+        } else {
+            setGameState((prevState) => ({
+                ...prevState,
+                numberPressed: randomNumber,
+                ballsBowled: prevState.ballsBowled + 1,
+                scoreList: !isOut ? [...prevState.scoreList, randomNumber]: [...prevState.scoreList],
+                botNumberPressed: value,
+                isOut
+            }))
+        }
+
         setTime(10);
         setUserInputNumber(value)
     }
@@ -202,11 +224,17 @@ const GamePlayScreen = () => {
     const renderHandGestureView = () => {
         return (
             <View style={styles.handGestureContainer}>
-            <View style={[styles.roundTime, {borderColor: 'white'}]}>
-                <Text style={styles.timerText}>{gameState.numberPressed?? "--"}</Text>
-            </View>
-                <View style={[styles.roundTime, {borderColor: 'green'}]}>
-                    <Text style={styles.timerText}>{gameState.botNumberPressed ?? "--"}</Text>
+                <View>
+                    <View style={[styles.roundTime, {borderColor: 'white'}]}>
+                        <Text style={styles.timerText}>{gameState.numberPressed?? "--"}</Text>
+                    </View>
+                    <Text style={styles.inputText}>{userIsBatting? "Your input": "Opponent input"}</Text>
+                </View>
+                <View>
+                    <View style={[styles.roundTime, {borderColor: 'green'}]}>
+                        <Text style={styles.timerText}>{gameState.botNumberPressed ?? "--"}</Text>
+                    </View>
+                    <Text style={styles.inputText}>{userIsBatting? "Opponent input": "Your input"}</Text>
                 </View>
             </View>
         )
@@ -216,9 +244,9 @@ const GamePlayScreen = () => {
         const scoreList = gameState.scoreList;
         return (
             <View>
-                {scoreList?.map((score) =>{
+                {scoreList?.map((score, index) =>{
                     return (
-                        <Text style={{color: 'white'}}>{`Current score is ${score}`}</Text>
+                        <Text key={index} style={{color: 'white'}}>{`Current score is ${score}`}</Text>
                     )
                 })}
             </View>
@@ -239,7 +267,7 @@ const GamePlayScreen = () => {
          
                 <ImageModal visible={gameState.isOut} imageSource={images.out}  />
                 <ImageModal centerText={target?.toString()} visible={gameState.inningsOver} imageSource={images.game_defend}  />
-                <ImageModal visible={gameState.battingStart} imageSource={images.batting}  />
+                <ImageModal visible={showBattingStart} imageSource={images.batting}  />
 
             </SafeAreaView>
         </ImageBackground>
@@ -307,5 +335,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 24
         // alignSelf: 'center'
+    },
+    inputText: {
+        color: 'white',
+        marginVertical: 8
     }
 });

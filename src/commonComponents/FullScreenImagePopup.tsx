@@ -55,6 +55,6 @@ const styles = StyleSheet.create({
     color: 'skyblue',
     position: 'absolute',
     top: '50%',
-    left: '50%'
+    left: '50%',
   }
 });
